@@ -1,20 +1,78 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# 💰 ExpensePro Tracker
 
-# Run and deploy your AI Studio app
+A full-stack expense management application built with **React, TypeScript, Spring Boot, MongoDB, and JWT Authentication**.
 
-This contains everything you need to run your app locally.
+ExpensePro Tracker helps users securely manage their personal expenses, track spending, analyze financial trends, and maintain their budget from a modern dashboard.
 
-View your app in AI Studio: https://ai.studio/apps/8da973b0-4d0a-49e3-b4bf-cc67d3f529bc
+## 🚀 Features
 
-## Run Locally
+- 🔐 User Registration & Login
+- 🔑 JWT-based Authentication
+- 💰 Add, Edit & Delete Expenses
+- 📊 Expense Analytics & Monthly Trends
+- 📈 Category-wise Expense Breakdown
+- 💳 Payment Method Tracking
+- 📅 Day-of-Week Spending Analysis
+- 💵 Budget Management
+- 🔎 Expense Filtering & Search
+- 📥 Import & Export Expense Data
+- 🗑️ Bulk Delete Expenses
+- 👤 User-specific Expense Data
+- 📱 Responsive Dashboard
+- 🔒 Secure Environment Variables
 
-**Prerequisites:**  Node.js
+## 🛠️ Tech Stack
 
+### Frontend
+- React
+- TypeScript
+- Vite
+- CSS
+- Axios
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+### Backend
+- Java
+- Spring Boot
+- Spring Security
+- JWT
+- Maven
+
+### Database
+- MongoDB
+
+## 📁 Project Structure
+
+```text
+ExpensePro-Tracker/
+│
+├── backend/
+│   ├── src/
+│   │   └── main/
+│   │       ├── java/com/expenseflow/
+│   │       │   ├── config/
+│   │       │   ├── controller/
+│   │       │   ├── dto/
+│   │       │   ├── exception/
+│   │       │   ├── model/
+│   │       │   ├── repository/
+│   │       │   ├── security/
+│   │       │   └── service/
+│   │       └── resources/
+│   ├── pom.xml
+│   └── README.md
+│
+├── src/
+│   ├── components/
+│   ├── context/
+│   ├── pages/
+│   ├── services/
+│   ├── utils/
+│   ├── App.tsx
+│   └── main.tsx
+│
+├── .env.example
+├── .gitignore
+├── package.json
+├── tsconfig.json
+├── vite.config.ts
+└── README.md
