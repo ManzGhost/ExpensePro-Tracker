@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) || 'http://localhost:8080/api';
+const API_BASE_URL = 
+  (typeof import.meta !== 'undefined' && import.meta.env && (import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL)) || 
+  'https://expensepro-tracker.onrender.com/api';
+
 const JWT_TOKEN_KEY = 'expenseflow_jwt_token';
 
 // Create dedicated axios instance with automatic JWT header attachment
@@ -9,7 +12,7 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000,
+  timeout: 15000,
 });
 
 apiClient.interceptors.request.use(

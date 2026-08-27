@@ -1,8 +1,11 @@
 import axios, { AxiosError } from 'axios';
 import { Expense, ExpenseCategory, PaymentMethod, ExpenseFilters } from '../types';
 
-// Spring Boot backend base URL
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8080/api';
+// Spring Boot backend base URL (Render Production Fallback added)
+const API_BASE_URL = 
+  (import.meta as any).env?.VITE_API_URL || 
+  (import.meta as any).env?.VITE_API_BASE_URL || 
+  'https://expensepro-tracker.onrender.com/api';
 
 // Create configured Axios instance
 export const apiClient = axios.create({
@@ -10,7 +13,7 @@ export const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000,
+  timeout: 15000,
 });
 
 // Storage token key
