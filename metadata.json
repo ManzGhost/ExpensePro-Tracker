@@ -1,0 +1,6 @@
+{
+  "name": "Expense Tracker",
+  "description": "A comprehensive expense tracking application with analytics, category budgeting, filtering, and transaction management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
