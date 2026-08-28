@@ -28,6 +28,17 @@ public class User {
 
     private String password;
 
+    @Builder.Default
+    private boolean emailVerified = false;
+
     @CreatedDate
     private Instant createdAt;
+
+    public boolean isEmailVerified() {
+        return emailVerified;
+    }
+
+    public void setEmailVerified(boolean emailVerified) {
+        this.emailVerified = emailVerified;
+    }
 }
