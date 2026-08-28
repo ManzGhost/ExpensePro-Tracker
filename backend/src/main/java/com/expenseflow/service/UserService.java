@@ -7,7 +7,6 @@ import com.expenseflow.repository.ExpenseRepository;
 import com.expenseflow.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -45,7 +44,6 @@ public class UserService {
     /**
      * Permanently delete user account and all associated user data from MongoDB
      */
-    @Transactional
     public void deleteUserAccount(String userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
