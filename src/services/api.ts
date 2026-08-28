@@ -1,19 +1,18 @@
 import axios, { AxiosError } from 'axios';
 import { Expense, ExpenseCategory, PaymentMethod, ExpenseFilters } from '../types';
 
-// Spring Boot backend base URL (Render Production Fallback added)
+// Spring Boot backend base URL
 const API_BASE_URL = 
   (import.meta as any).env?.VITE_API_URL || 
   (import.meta as any).env?.VITE_API_BASE_URL || 
   'https://expensepro-tracker.onrender.com/api';
-
 // Create configured Axios instance
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 15000,
+  timeout: 10000,
 });
 
 // Storage token key
@@ -49,7 +48,7 @@ export const authApi = {
     const response = await apiClient.post<{
       token: string;
       type: string;
-      user: { id: string; name: string; email: string; createdAt: string };
+      user: { id: string; name: string; email: string; emailVerified?: boolean; createdAt: string };
     }>('/auth/login', { email, password });
     return response.data;
   },
@@ -58,13 +57,59 @@ export const authApi = {
     const response = await apiClient.post<{
       token: string;
       type: string;
-      user: { id: string; name: string; email: string; createdAt: string };
+      user: { id: string; name: string; email: string; emailVerified?: boolean; createdAt: string };
     }>('/auth/register', { name, email, password });
     return response.data;
   },
 
   getCurrentUser: async () => {
-    const response = await apiClient.get<{ id: string; name: string; email: string; createdAt: string }>('/users/me');
+    const response = await apiClient.get<{ id: string; name: string; email: string; emailVerified?: boolean; createdAt: string }>('/users/me');
+    return response.data;
+  },
+
+  verifyEmail: async (data: { code?: string; token?: string; email?: string }) => {
+    const response = await apiClient.post<{
+      success: boolean;
+      message: string;
+      user?: { id: string; name: string; email: string; emailVerified: boolean; createdAt: string };
+      token?: string;
+    }>('/auth/verify-email', data);
+    return response.data;
+  },
+
+  verifyEmailByToken: async (token: string) => {
+    const response = await apiClient.get<{
+      success: boolean;
+      message: string;
+      user?: { id: string; name: string; email: string; emailVerified: boolean; createdAt: string };
+      token?: string;
+    }>('/auth/verify-email', { params: { token } });
+    return response.data;
+  },
+
+  resendVerification: async (data?: { email?: string }) => {
+    const response = await apiClient.post<{
+      success: boolean;
+      message: string;
+      simulatedOtp?: string;
+      user?: { id: string; name: string; email: string; emailVerified: boolean; createdAt: string };
+    }>('/auth/resend-verification', data || {});
+    return response.data;
+  },
+
+  changeEmail: async (data: { newEmail: string; currentEmail?: string }) => {
+    const response = await apiClient.post<{
+      success: boolean;
+      message: string;
+      simulatedOtp?: string;
+      user?: { id: string; name: string; email: string; emailVerified: boolean; createdAt: string };
+      token?: string;
+    }>('/auth/change-email', data);
+    return response.data;
+  },
+
+  deleteAccount: async () => {
+    const response = await apiClient.delete<{ success: boolean; message: string }>('/users/me');
     return response.data;
   },
 };

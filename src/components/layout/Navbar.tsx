@@ -11,11 +11,13 @@ import {
   X,
   LogOut,
   User,
+  UserX,
 } from 'lucide-react';
 import { useExpenses } from '../../context/ExpenseContext';
 import { useAuth } from '../../context/AuthContext';
 import { calculateTotals, formatCurrency } from '../../utils/formatters';
 import { BudgetSettingsModal } from './BudgetSettingsModal';
+import { DeleteAccountModal } from '../auth/DeleteAccountModal';
 
 export const Navbar: React.FC = () => {
   const location = useLocation();
@@ -24,6 +26,7 @@ export const Navbar: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isDeleteAccountOpen, setIsDeleteAccountOpen] = useState(false);
 
   const totals = calculateTotals(expenses);
   const monthPercent = Math.min(
@@ -149,10 +152,12 @@ export const Navbar: React.FC = () => {
                   </button>
 
                   {/* User Profile Pill */}
-                  <div
+                  <button
+                    type="button"
                     id="navbar-user-profile"
-                    className="hidden lg:flex items-center gap-2 px-2.5 py-1 rounded-xl bg-[#141414] border border-[#222]"
-                    title={`Logged in as ${user?.email || 'User'}`}
+                    onClick={() => setIsSettingsOpen(true)}
+                    className="hidden lg:flex items-center gap-2 px-2.5 py-1 rounded-xl bg-[#141414] hover:bg-[#1a1a1a] border border-[#222] transition-colors cursor-pointer"
+                    title={`Logged in as ${user?.email || 'User'} - Click to manage settings`}
                   >
                     <div className="w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs font-bold uppercase">
                       {user?.name?.charAt(0) || <User size={12} />}
@@ -160,7 +165,7 @@ export const Navbar: React.FC = () => {
                     <span className="text-xs font-medium text-gray-300 max-w-[100px] truncate">
                       {user?.name || 'Account'}
                     </span>
-                  </div>
+                  </button>
 
                   {/* Logout Button */}
                   <button
@@ -282,6 +287,19 @@ export const Navbar: React.FC = () => {
                 <LogOut size={18} />
                 Logout ({user?.email})
               </button>
+
+              <button
+                type="button"
+                id="mobile-delete-account-btn"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  setIsDeleteAccountOpen(true);
+                }}
+                className="w-full flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-rose-400/80 hover:text-rose-300 hover:bg-rose-950/30 border border-rose-500/20 transition-colors"
+              >
+                <UserX size={15} />
+                Permanently Delete Account
+              </button>
             </div>
           </div>
         )}
@@ -291,6 +309,12 @@ export const Navbar: React.FC = () => {
       <BudgetSettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+      />
+
+      {/* Delete Account Modal */}
+      <DeleteAccountModal
+        isOpen={isDeleteAccountOpen}
+        onClose={() => setIsDeleteAccountOpen(false)}
       />
     </>
   );

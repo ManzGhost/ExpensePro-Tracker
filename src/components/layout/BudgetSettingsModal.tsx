@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Sliders, DollarSign, Check, RotateCcw } from 'lucide-react';
+import { Sliders, DollarSign, Check, RotateCcw, UserX, AlertTriangle, ShieldCheck, Mail, AlertCircle, ArrowRight } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { useExpenses } from '../../context/ExpenseContext';
+import { useAuth } from '../../context/AuthContext';
 import { CURRENCY_OPTIONS, EXPENSE_CATEGORIES } from '../../constants/categories';
 import { ExpenseCategory } from '../../types';
+import { DeleteAccountModal } from '../auth/DeleteAccountModal';
+import { EmailVerificationModal } from '../auth/EmailVerificationModal';
 
 interface BudgetSettingsModalProps {
   isOpen: boolean;
@@ -12,14 +15,17 @@ interface BudgetSettingsModalProps {
 
 export const BudgetSettingsModal: React.FC<BudgetSettingsModalProps> = ({ isOpen, onClose }) => {
   const { budgetConfig, updateBudgetConfig, resetToDemoData, clearAllExpenses } = useExpenses();
+  const { user, isAuthenticated } = useAuth();
 
   const [monthlyBudget, setMonthlyBudget] = useState<string>(budgetConfig.monthlyBudget.toString());
   const [selectedCurrency, setSelectedCurrency] = useState(budgetConfig.currencyCode);
   const [categoryBudgets, setCategoryBudgets] = useState<Partial<Record<ExpenseCategory, number>>>(
     budgetConfig.categoryBudgets || {}
   );
-  const [activeTab, setActiveTab] = useState<'budget' | 'data'>('budget');
+  const [activeTab, setActiveTab] = useState<'budget' | 'data' | 'account'>('budget');
   const [isConfirmingClear, setIsConfirmingClear] = useState<boolean>(false);
+  const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState<boolean>(false);
+  const [isVerifyModalOpen, setIsVerifyModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -27,6 +33,8 @@ export const BudgetSettingsModal: React.FC<BudgetSettingsModalProps> = ({ isOpen
       setSelectedCurrency(budgetConfig.currencyCode);
       setCategoryBudgets(budgetConfig.categoryBudgets || {});
       setIsConfirmingClear(false);
+      setIsDeleteAccountModalOpen(false);
+      setIsVerifyModalOpen(false);
     }
   }, [isOpen, budgetConfig]);
 
@@ -88,6 +96,20 @@ export const BudgetSettingsModal: React.FC<BudgetSettingsModalProps> = ({ isOpen
           >
             Data Management
           </button>
+          {isAuthenticated && (
+            <button
+              type="button"
+              id="tab-btn-account"
+              onClick={() => setActiveTab('account')}
+              className={`pb-2.5 px-4 font-semibold text-sm border-b-2 transition-colors ${
+                activeTab === 'account'
+                  ? 'border-rose-500 text-rose-400'
+                  : 'border-transparent text-gray-400 hover:text-white'
+              }`}
+            >
+              Account & Security
+            </button>
+          )}
         </div>
 
         {activeTab === 'budget' ? (
@@ -186,7 +208,7 @@ export const BudgetSettingsModal: React.FC<BudgetSettingsModalProps> = ({ isOpen
               </button>
             </div>
           </form>
-        ) : (
+        ) : activeTab === 'data' ? (
           <div className="space-y-4">
             <div className="p-4 bg-[#161616] border border-[#222] rounded-2xl space-y-3">
               <div>
@@ -213,7 +235,7 @@ export const BudgetSettingsModal: React.FC<BudgetSettingsModalProps> = ({ isOpen
               <div>
                 <h4 className="text-sm font-bold text-rose-200">Clear All Transactions</h4>
                 <p className="text-xs text-rose-400/80 mt-0.5">
-                  Permanently erase all stored records from browser LocalStorage for a fresh start.
+                  Permanently erase all stored records from the database for a fresh start.
                 </p>
               </div>
 
@@ -256,8 +278,94 @@ export const BudgetSettingsModal: React.FC<BudgetSettingsModalProps> = ({ isOpen
               )}
             </div>
           </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Account Info & Email Verification Card */}
+            <div className="p-4 bg-[#161616] border border-[#222] rounded-2xl space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center font-bold text-sm uppercase">
+                    {user?.name?.charAt(0) || 'U'}
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white">{user?.name || 'Registered User'}</h4>
+                    <p className="text-xs text-gray-400">{user?.email}</p>
+                  </div>
+                </div>
+
+                {user?.emailVerified ? (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 text-xs font-semibold">
+                    <ShieldCheck size={14} className="text-emerald-400" />
+                    Verified
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/30 text-xs font-semibold">
+                    <AlertCircle size={14} className="text-amber-400" />
+                    Unverified
+                  </span>
+                )}
+              </div>
+
+              {/* If email is unverified, show verify action box */}
+              {!user?.emailVerified && (
+                <div className="pt-2 border-t border-[#222] flex items-center justify-between gap-3">
+                  <p className="text-xs text-amber-200/80">
+                    Verify your email to enhance account protection.
+                  </p>
+                  <button
+                    type="button"
+                    id="settings-verify-email-btn"
+                    onClick={() => setIsVerifyModalOpen(true)}
+                    className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-indigo-600/20 transition-all cursor-pointer shrink-0"
+                  >
+                    <Mail size={13} />
+                    <span>Verify Email</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Danger Zone: Permanent Account Deletion */}
+            <div className="p-4 bg-rose-950/20 border border-rose-500/30 rounded-2xl space-y-3">
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle size={18} className="text-rose-400 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="text-sm font-bold text-rose-200">Permanent Account Deletion</h4>
+                  <p className="text-xs text-rose-300/80 mt-0.5 leading-relaxed">
+                    Permanently delete your user account and erase all your personal expenses, categories, and records from the MongoDB database.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-1">
+                <button
+                  type="button"
+                  id="settings-delete-account-btn"
+                  onClick={() => {
+                    setIsDeleteAccountModalOpen(true);
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center gap-2 transition-all shadow-lg shadow-rose-950/50 cursor-pointer"
+                >
+                  <UserX size={15} />
+                  <span>Permanently Delete Account</span>
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
+
+      {/* Account Deletion Confirmation Dialog */}
+      <DeleteAccountModal
+        isOpen={isDeleteAccountModalOpen}
+        onClose={() => setIsDeleteAccountModalOpen(false)}
+      />
+
+      {/* Email Verification Dialog */}
+      <EmailVerificationModal
+        isOpen={isVerifyModalOpen}
+        onClose={() => setIsVerifyModalOpen(false)}
+      />
     </Modal>
   );
 };

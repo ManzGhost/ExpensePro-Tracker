@@ -12,7 +12,7 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 15000,
+  timeout: 10000,
 });
 
 apiClient.interceptors.request.use(
@@ -54,6 +54,21 @@ export const expenseService = {
   // Get aggregation summary metrics
   getSummary: async () => {
     const response = await apiClient.get('/expenses/summary');
+    return response.data;
+  },
+  // Delete user account permanently
+  deleteAccount: async () => {
+    const response = await apiClient.delete('/users/me');
+    return response.data;
+  },
+  // Verify email with 6-digit code
+  verifyEmail: async (data) => {
+    const response = await apiClient.post('/auth/verify-email', data);
+    return response.data;
+  },
+  // Resend verification code
+  resendVerification: async (data) => {
+    const response = await apiClient.post('/auth/resend-verification', data || {});
     return response.data;
   },
 };
