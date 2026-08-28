@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Sliders, DollarSign, Check, RotateCcw, UserX, AlertTriangle, ShieldCheck, Mail, AlertCircle, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Sliders, DollarSign, Check, RotateCcw, UserX, AlertTriangle, Trash2, Loader2, ShieldCheck } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { useExpenses } from '../../context/ExpenseContext';
 import { useAuth } from '../../context/AuthContext';
 import { CURRENCY_OPTIONS, EXPENSE_CATEGORIES } from '../../constants/categories';
 import { ExpenseCategory } from '../../types';
 import { DeleteAccountModal } from '../auth/DeleteAccountModal';
-import { EmailVerificationModal } from '../auth/EmailVerificationModal';
 
 interface BudgetSettingsModalProps {
   isOpen: boolean;
@@ -14,8 +14,9 @@ interface BudgetSettingsModalProps {
 }
 
 export const BudgetSettingsModal: React.FC<BudgetSettingsModalProps> = ({ isOpen, onClose }) => {
-  const { budgetConfig, updateBudgetConfig, resetToDemoData, clearAllExpenses } = useExpenses();
-  const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const { budgetConfig, updateBudgetConfig, resetToDemoData, clearAllExpenses, addToast } = useExpenses();
+  const { user, isAuthenticated, deleteAccount } = useAuth();
 
   const [monthlyBudget, setMonthlyBudget] = useState<string>(budgetConfig.monthlyBudget.toString());
   const [selectedCurrency, setSelectedCurrency] = useState(budgetConfig.currencyCode);
@@ -24,8 +25,11 @@ export const BudgetSettingsModal: React.FC<BudgetSettingsModalProps> = ({ isOpen
   );
   const [activeTab, setActiveTab] = useState<'budget' | 'data' | 'account'>('budget');
   const [isConfirmingClear, setIsConfirmingClear] = useState<boolean>(false);
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState<boolean>(false);
+  const [confirmDeleteText, setConfirmDeleteText] = useState<string>('');
+  const [isDeletingAccount, setIsDeletingAccount] = useState<boolean>(false);
+  const [deleteErrorMessage, setDeleteErrorMessage] = useState<string>('');
   const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState<boolean>(false);
-  const [isVerifyModalOpen, setIsVerifyModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -33,8 +37,11 @@ export const BudgetSettingsModal: React.FC<BudgetSettingsModalProps> = ({ isOpen
       setSelectedCurrency(budgetConfig.currencyCode);
       setCategoryBudgets(budgetConfig.categoryBudgets || {});
       setIsConfirmingClear(false);
+      setIsConfirmingDelete(false);
+      setConfirmDeleteText('');
+      setDeleteErrorMessage('');
+      setIsDeletingAccount(false);
       setIsDeleteAccountModalOpen(false);
-      setIsVerifyModalOpen(false);
     }
   }, [isOpen, budgetConfig]);
 
@@ -58,6 +65,29 @@ export const BudgetSettingsModal: React.FC<BudgetSettingsModalProps> = ({ isOpen
       ...prev,
       [cat]: isNaN(num) || num < 0 ? undefined : num,
     }));
+  };
+
+  const handleDeleteAccountDirectly = async () => {
+    if (isDeletingAccount) return;
+    setIsDeletingAccount(true);
+    setDeleteErrorMessage('');
+
+    try {
+      await clearAllExpenses();
+      const res = await deleteAccount();
+      if (!res.success) {
+        setDeleteErrorMessage(res.error || 'Failed to delete account. Please try again.');
+        setIsDeletingAccount(false);
+        return;
+      }
+
+      addToast('info', 'Account Deleted', 'Your account and expense data have been permanently removed.');
+      onClose();
+      navigate('/login', { replace: true });
+    } catch (err: any) {
+      setDeleteErrorMessage(err.message || 'An unexpected error occurred during account deletion.');
+      setIsDeletingAccount(false);
+    }
   };
 
   return (
@@ -280,7 +310,7 @@ export const BudgetSettingsModal: React.FC<BudgetSettingsModalProps> = ({ isOpen
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Account Info & Email Verification Card */}
+            {/* Account Info Card */}
             <div className="p-4 bg-[#161616] border border-[#222] rounded-2xl space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -293,63 +323,96 @@ export const BudgetSettingsModal: React.FC<BudgetSettingsModalProps> = ({ isOpen
                   </div>
                 </div>
 
-                {user?.emailVerified ? (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 text-xs font-semibold">
-                    <ShieldCheck size={14} className="text-emerald-400" />
-                    Verified
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/30 text-xs font-semibold">
-                    <AlertCircle size={14} className="text-amber-400" />
-                    Unverified
-                  </span>
-                )}
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 text-xs font-semibold">
+                  <ShieldCheck size={14} className="text-emerald-400" />
+                  Active Account
+                </span>
               </div>
-
-              {/* If email is unverified, show verify action box */}
-              {!user?.emailVerified && (
-                <div className="pt-2 border-t border-[#222] flex items-center justify-between gap-3">
-                  <p className="text-xs text-amber-200/80">
-                    Verify your email to enhance account protection.
-                  </p>
-                  <button
-                    type="button"
-                    id="settings-verify-email-btn"
-                    onClick={() => setIsVerifyModalOpen(true)}
-                    className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-indigo-600/20 transition-all cursor-pointer shrink-0"
-                  >
-                    <Mail size={13} />
-                    <span>Verify Email</span>
-                  </button>
-                </div>
-              )}
             </div>
 
             {/* Danger Zone: Permanent Account Deletion */}
             <div className="p-4 bg-rose-950/20 border border-rose-500/30 rounded-2xl space-y-3">
               <div className="flex items-start gap-2.5">
                 <AlertTriangle size={18} className="text-rose-400 shrink-0 mt-0.5" />
-                <div>
+                <div className="space-y-1">
                   <h4 className="text-sm font-bold text-rose-200">Permanent Account Deletion</h4>
-                  <p className="text-xs text-rose-300/80 mt-0.5 leading-relaxed">
-                    Permanently delete your user account and erase all your personal expenses, categories, and records from the MongoDB database.
+                  <p className="text-xs text-rose-300/80 leading-relaxed">
+                    Permanently delete your user account (<strong className="text-rose-200">{user?.email}</strong>) and erase all your personal expenses, categories, and records from the database.
                   </p>
                 </div>
               </div>
 
-              <div className="pt-1">
-                <button
-                  type="button"
-                  id="settings-delete-account-btn"
-                  onClick={() => {
-                    setIsDeleteAccountModalOpen(true);
-                  }}
-                  className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center gap-2 transition-all shadow-lg shadow-rose-950/50 cursor-pointer"
-                >
-                  <UserX size={15} />
-                  <span>Permanently Delete Account</span>
-                </button>
-              </div>
+              {deleteErrorMessage && (
+                <div className="p-3 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-200 text-xs font-medium">
+                  {deleteErrorMessage}
+                </div>
+              )}
+
+              {isConfirmingDelete ? (
+                <div className="p-3.5 bg-rose-950/60 border border-rose-500/40 rounded-xl space-y-3">
+                  <div>
+                    <label htmlFor="settings-confirm-delete-input" className="block text-xs font-bold text-rose-200 uppercase tracking-wider mb-1">
+                      Type <span className="text-white font-mono bg-rose-900/60 px-1.5 py-0.5 rounded">DELETE</span> to confirm
+                    </label>
+                    <input
+                      id="settings-confirm-delete-input"
+                      type="text"
+                      value={confirmDeleteText}
+                      onChange={(e) => setConfirmDeleteText(e.target.value)}
+                      disabled={isDeletingAccount}
+                      placeholder="Type DELETE"
+                      className="w-full px-3 py-2 rounded-xl border border-rose-500/50 bg-[#121212] text-white font-mono text-xs focus:border-rose-400 focus:outline-hidden"
+                      autoComplete="off"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      id="settings-delete-account-btn"
+                      onClick={handleDeleteAccountDirectly}
+                      disabled={confirmDeleteText.trim().toUpperCase() !== 'DELETE' || isDeletingAccount}
+                      className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:bg-rose-900/40 disabled:text-rose-400/40 disabled:cursor-not-allowed text-white font-bold text-xs flex items-center gap-2 transition-all shadow-lg shadow-rose-950/50 cursor-pointer"
+                    >
+                      {isDeletingAccount ? (
+                        <>
+                          <Loader2 size={14} className="animate-spin" />
+                          <span>Deleting Account...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 size={14} />
+                          <span>Confirm & Delete Account</span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsConfirmingDelete(false);
+                        setConfirmDeleteText('');
+                        setDeleteErrorMessage('');
+                      }}
+                      disabled={isDeletingAccount}
+                      className="px-3.5 py-2 rounded-xl bg-[#222] hover:bg-[#2a2a2a] text-gray-300 hover:text-white font-medium text-xs transition-colors disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    id="settings-delete-account-btn"
+                    onClick={() => setIsConfirmingDelete(true)}
+                    className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center gap-2 transition-all shadow-lg shadow-rose-950/50 cursor-pointer"
+                  >
+                    <UserX size={15} />
+                    <span>Permanently Delete Account</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -359,12 +422,6 @@ export const BudgetSettingsModal: React.FC<BudgetSettingsModalProps> = ({ isOpen
       <DeleteAccountModal
         isOpen={isDeleteAccountModalOpen}
         onClose={() => setIsDeleteAccountModalOpen(false)}
-      />
-
-      {/* Email Verification Dialog */}
-      <EmailVerificationModal
-        isOpen={isVerifyModalOpen}
-        onClose={() => setIsVerifyModalOpen(false)}
       />
     </Modal>
   );

@@ -47,7 +47,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setIsBackendOnline(true);
           localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authUser));
         } catch (err: any) {
-          // If server token validation failed, check fallback or clear
           if (!err.response) {
             setIsBackendOnline(false);
           }
@@ -103,7 +102,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      // Authenticate directly against MongoDB via Spring Boot
       const res = await authApi.login(trimmedEmail, password);
       if (res.token) {
         localStorage.setItem(JWT_TOKEN_KEY, res.token);
@@ -122,11 +120,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authenticatedUser));
       return { success: true };
     } catch (err: any) {
-      // If Spring Boot backend is offline / unreachable in browser preview:
       if (!err.response || err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
         setIsBackendOnline(false);
 
-        // Check offline registered account or create fallback session
         const accounts = getOfflineAccounts();
         const existing = accounts.find((a) => a.email.toLowerCase() === trimmedEmail);
 
@@ -183,7 +179,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      // Store new user directly in MongoDB via Spring Boot
       const res = await authApi.register(trimmedName, trimmedEmail, password);
       if (res.token) {
         localStorage.setItem(JWT_TOKEN_KEY, res.token);
@@ -202,7 +197,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authenticatedUser));
       return { success: true };
     } catch (err: any) {
-      // If Spring Boot backend is offline / unreachable in browser preview:
       if (!err.response || err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
         setIsBackendOnline(false);
 
@@ -286,7 +280,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return userObj;
       });
 
-      // Update offline account cache if present
       if (targetEmail) {
         const accounts = getOfflineAccounts();
         const updatedAccounts = accounts.map((acc) =>
@@ -297,7 +290,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       return { success: true };
     } catch (err: any) {
-      // Offline fallback verification: allow code 123456 or any 6-digit number in offline mode
       if (!err.response || err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
         if (trimmedInput.length >= 6) {
           setUser((prev) => {
@@ -367,7 +359,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: true };
     } catch (err: any) {
       if (!err.response || err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
-        // In preview/offline, allow token to succeed if non-empty
         setUser((prev) => {
           if (!prev) return null;
           const updated: AuthUser = { ...prev, emailVerified: true };
@@ -464,13 +455,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const currentUserEmail = user?.email?.toLowerCase();
 
     try {
-      // 1. If backend token is present, call backend DELETE /api/users/me
       const token = localStorage.getItem(JWT_TOKEN_KEY);
       if (token) {
         try {
           await authApi.deleteAccount();
         } catch (apiErr: any) {
-          // If network unreachable, proceed with offline deletion
           if (apiErr.response && apiErr.response.status !== 404) {
             return {
               success: false,
@@ -480,7 +469,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // 2. Remove from offline registered users list if stored locally
       if (currentUserEmail) {
         const accounts = getOfflineAccounts();
         const updatedAccounts = accounts.filter(
@@ -489,14 +477,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem(OFFLINE_USERS_KEY, JSON.stringify(updatedAccounts));
       }
 
-      // 3. Clean up user specific local caches and active session tokens
       if (currentUserId) {
         localStorage.removeItem(`expenseflow_local_expenses_${currentUserId}`);
       }
       localStorage.removeItem(AUTH_STORAGE_KEY);
       localStorage.removeItem(JWT_TOKEN_KEY);
 
-      // 4. Reset auth state
       setUser(null);
       return { success: true };
     } catch (err: any) {
@@ -533,6 +519,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         register,
         logout,
         deleteAccount,
+        verifyEmail,
+        verifyEmailByToken,
+        changeEmail,
+        resendVerification,
         requestPasswordReset,
       }}
     >
@@ -548,4 +538,3 @@ export function useAuth() {
   }
   return context;
 }
-
