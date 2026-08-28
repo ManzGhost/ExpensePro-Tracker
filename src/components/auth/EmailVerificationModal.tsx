@@ -25,7 +25,7 @@ export const EmailVerificationModal: React.FC<EmailVerificationModalProps> = ({ 
     const res = await verifyEmail(code);
     setIsSubmitting(false);
 
-    if (res.success) {
+    if (res.success) {q
       setStatus({ text: 'Email verified successfully!', type: 'success' });
       setTimeout(() => {
         onClose();

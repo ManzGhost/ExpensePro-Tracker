@@ -18,12 +18,16 @@ import {
   User,
   UserPlus,
   LogIn,
-  Check,
 } from 'lucide-react';
 
 interface LoginPageProps {
   initialMode?: 'login' | 'register';
 }
+
+const STORAGE_LAST_EMAIL = 'expenseflow_last_registered_email';
+const STORAGE_LAST_NAME = 'expenseflow_last_registered_name';
+const DEFAULT_EMAIL = 'daviddhawan876@gmail.com';
+const DEFAULT_NAME = 'David Dhawan';
 
 export function LoginPage({ initialMode = 'login' }: LoginPageProps) {
   const navigate = useNavigate();
@@ -35,7 +39,15 @@ export function LoginPage({ initialMode = 'login' }: LoginPageProps) {
     location.pathname === '/register' || initialMode === 'register' ? 'register' : 'login'
   );
 
-  // Sync mode whenever URL path changes (e.g. from navbar clicks)
+  // Dynamic remembered credentials from localStorage with fallbacks
+  const [rememberedEmail, setRememberedEmail] = useState<string>(() => {
+    return localStorage.getItem(STORAGE_LAST_EMAIL) || DEFAULT_EMAIL;
+  });
+  const [rememberedName, setRememberedName] = useState<string>(() => {
+    return localStorage.getItem(STORAGE_LAST_NAME) || DEFAULT_NAME;
+  });
+
+  // Sync mode and reload remembered credentials when route changes
   useEffect(() => {
     if (location.pathname === '/register') {
       setMode('register');
@@ -44,6 +56,11 @@ export function LoginPage({ initialMode = 'login' }: LoginPageProps) {
       setMode('login');
       setFormErrors({});
     }
+
+    const storedEmail = localStorage.getItem(STORAGE_LAST_EMAIL);
+    const storedName = localStorage.getItem(STORAGE_LAST_NAME);
+    if (storedEmail) setRememberedEmail(storedEmail);
+    if (storedName) setRememberedName(storedName);
   }, [location.pathname, initialMode]);
 
   // Common fields
@@ -152,8 +169,13 @@ export function LoginPage({ initialMode = 'login' }: LoginPageProps) {
     setIsSubmitting(true);
     try {
       if (mode === 'login') {
-        const result = await login(email, password, rememberMe);
+        const cleanEmail = email.trim().toLowerCase();
+        const result = await login(cleanEmail, password, rememberMe);
         if (result.success) {
+          // Store latest logged-in email
+          localStorage.setItem(STORAGE_LAST_EMAIL, cleanEmail);
+          setRememberedEmail(cleanEmail);
+
           addToast({
             type: 'success',
             title: 'Welcome Back!',
@@ -165,12 +187,20 @@ export function LoginPage({ initialMode = 'login' }: LoginPageProps) {
         }
       } else {
         // Register Mode
-        const result = await register(fullName, email, password, rememberMe);
+        const cleanEmail = email.trim().toLowerCase();
+        const cleanName = fullName.trim();
+        const result = await register(cleanName, cleanEmail, password, rememberMe);
         if (result.success) {
+          // Store latest registered email and name
+          localStorage.setItem(STORAGE_LAST_EMAIL, cleanEmail);
+          localStorage.setItem(STORAGE_LAST_NAME, cleanName);
+          setRememberedEmail(cleanEmail);
+          setRememberedName(cleanName);
+
           addToast({
             type: 'success',
             title: 'Account Created!',
-            description: `Welcome to ExpenseFlow, ${fullName.trim()}! Your account is ready.`,
+            description: `Welcome to ExpenseFlow, ${cleanName}! Your account is ready.`,
           });
           navigate(fromLocation, { replace: true });
         } else {
@@ -186,8 +216,18 @@ export function LoginPage({ initialMode = 'login' }: LoginPageProps) {
 
   const handleFillDemoAccount = () => {
     setMode('login');
-    setEmail('david@expenseflow.com');
+    setEmail(rememberedEmail);
     setPassword('finance2026');
+    setFormErrors({});
+  };
+
+  const handleFillRegisterAccount = () => {
+    setMode('register');
+    setFullName(rememberedName);
+    setEmail(rememberedEmail);
+    setPassword('finance2026');
+    setConfirmPassword('finance2026');
+    setAgreeTerms(true);
     setFormErrors({});
   };
 
@@ -229,25 +269,24 @@ export function LoginPage({ initialMode = 'login' }: LoginPageProps) {
           </p>
         </div>
 
-        {/* Demo Credentials Quick Pill (shown in login mode) */}
-        {mode === 'login' && (
-          <div className="bg-[#141414] border border-[#262626] rounded-2xl p-3.5 flex items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2 text-gray-300">
-              <Sparkles size={16} className="text-amber-400 shrink-0" />
-              <span className="text-gray-400">
-                Testing? Use <strong className="text-gray-200">david@expenseflow.com</strong>
-              </span>
-            </div>
-            <button
-              type="button"
-              id="fill-demo-credentials-btn"
-              onClick={handleFillDemoAccount}
-              className="px-2.5 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 hover:text-indigo-200 border border-indigo-500/30 font-semibold text-[11px] transition-colors shrink-0 cursor-pointer"
-            >
-              Auto-fill
-            </button>
+        {/* Recommended / Recently Used Credentials Quick Pill */}
+        <div className="bg-[#141414] border border-[#262626] rounded-2xl p-3.5 flex items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2 text-gray-300">
+            <Sparkles size={16} className="text-amber-400 shrink-0" />
+            <span className="text-gray-400">
+              {mode === 'login' ? 'Quick Sign-in:' : 'Recommended:'}{' '}
+              <strong className="text-gray-200">{rememberedEmail}</strong>
+            </span>
           </div>
-        )}
+          <button
+            type="button"
+            id="fill-demo-credentials-btn"
+            onClick={mode === 'login' ? handleFillDemoAccount : handleFillRegisterAccount}
+            className="px-2.5 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 hover:text-indigo-200 border border-indigo-500/30 font-semibold text-[11px] transition-colors shrink-0 cursor-pointer"
+          >
+            Auto-fill
+          </button>
+        </div>
 
         {/* Main Auth Card */}
         <div className="bg-[#121212] border border-[#222] rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 relative overflow-hidden">
@@ -339,7 +378,7 @@ export function LoginPage({ initialMode = 'login' }: LoginPageProps) {
                       setFullName(e.target.value);
                       if (formErrors.name) setFormErrors((prev) => ({ ...prev, name: undefined }));
                     }}
-                    placeholder="e.g. David Dhawan"
+                    placeholder={`e.g. ${rememberedName}`}
                     autoComplete="name"
                     className={`w-full pl-10 pr-4 py-3 rounded-2xl border bg-[#161616] text-white text-sm placeholder-gray-500 focus:outline-hidden transition-all ${
                       formErrors.name
@@ -376,7 +415,7 @@ export function LoginPage({ initialMode = 'login' }: LoginPageProps) {
                     setEmail(e.target.value);
                     if (formErrors.email) setFormErrors((prev) => ({ ...prev, email: undefined }));
                   }}
-                  placeholder="e.g. name@company.com"
+                  placeholder={`e.g. ${rememberedEmail}`}
                   autoComplete="email"
                   className={`w-full pl-10 pr-4 py-3 rounded-2xl border bg-[#161616] text-white text-sm placeholder-gray-500 focus:outline-hidden transition-all ${
                     formErrors.email
