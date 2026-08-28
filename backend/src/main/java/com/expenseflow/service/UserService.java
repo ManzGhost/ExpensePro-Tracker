@@ -23,7 +23,7 @@ public class UserService {
                 .id(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
-                .emailVerified(user.isEmailVerified())
+                .emailVerified(true)
                 .createdAt(user.getCreatedAt())
                 .build();
     }
@@ -36,7 +36,7 @@ public class UserService {
                 .id(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
-                .emailVerified(user.isEmailVerified())
+                .emailVerified(true)
                 .createdAt(user.getCreatedAt())
                 .build();
     }
